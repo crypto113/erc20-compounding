@@ -67,9 +67,9 @@ const countAdress = async (address) => {
       const compounding = {
         "coin_address": token.token_address,
         "wallet_address": address,
-        "balance": token.balance,
+        "balance": balanceBignum.toString(),
         "sum": sum.toString(),
-        "blockNums": blockNums.toString(),
+        "blockNums": blockNums,
       };
 
       console.log(compounding);
