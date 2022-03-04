@@ -1,8 +1,7 @@
-const express = require("express");
-const axios = require('axios');
-const fs = require('fs');
-const wallet = require("./wallet");
-const app = express();
+import { ethers } from "ethers";
+import axios from "axios";
+import fs from "fs";
+import { addresses } from "./wallet.js";
 const port = process.env.PORT || "8000";
 
 var finalCompoundingCoins = [];
@@ -44,26 +43,36 @@ const countAdress = async (address) => {
   for (const token of tokens) {
     const transactionsRes = await addressNewTransactions(address, token.token_address);
     const transactions = transactionsRes.data.result;
-    console.log(transactions);
-    var deposits = 0;
-    var withdrawals = 0;
+    var deposits = ethers.BigNumber.from(0);
+    var withdrawals = ethers.BigNumber.from(0);
+    var blockNums = [];
     for (const transaction of transactions) {
-      if (address == transaction.to) {
-        deposits = Number(deposits) + Number(transaction.value);
+      blockNums.push(transaction.blockNumber);
+      if (address == transaction.from) {
+        const newWidrawal = ethers.BigNumber.from(transaction.value);
+        withdrawals = withdrawals.add(newWidrawal);
       } else {
-        withdrawals += Number(withdrawals) + Number(transaction.value);
+        const newDeposit = ethers.BigNumber.from(transaction.value);
+        deposits = deposits.add(newDeposit);
       }
     }
-    var sum = Number(deposits) - Number(withdrawals);
-    if (token.balance > sum) {
+
+    var sum = deposits.sub(withdrawals);
+    var balanceBignum = ethers.BigNumber.from(token.balance);
+    // console.log("balance ====== ", balanceBignum.toString());
+    // console.log("sum ====== ", sum.toString());
+    if (balanceBignum.gt(sum)) {
       compoundingCount++;
       console.log(compoundingCount);
       const compounding = {
         "coin_address": token.token_address,
         "wallet_address": address,
         "balance": token.balance,
-        "sum": sum
+        "sum": sum.toString(),
+        "blockNums": blockNums.toString(),
       };
+
+      console.log(compounding);
     
       compoundingCoins.push(compounding);
     }
@@ -73,26 +82,20 @@ const countAdress = async (address) => {
 }
 
 const operate = async () => {
-  for (const address of wallet.addresses) {
+  for (const address of addresses) {
     const compouMerge = await countAdress(address);
     finalCompoundingCoins = finalCompoundingCoins.concat(compouMerge);
   }
   return finalCompoundingCoins;
 }
 
-app.get('/compoundings', (req, res) => {
-  operate().then(response => {
-    const tokenData = JSON.stringify(response);
-    
-    fs.writeFile("assets/final_result.json", tokenData, function (err) {
-      if (err) {
-        return console.log(err);
-      }
-      return res.send('compouding coin list fetched');
-    });
-  })
-});
-
-app.listen(port, () => {
-  console.log(`Listening to requests on http://localhost:${port}`);
-});
+operate().then(response => {
+  const tokenData = JSON.stringify(response);
+  
+  fs.writeFile("assets/final_result.json", tokenData, function (err) {
+    if (err) {
+      return console.log(err);
+    }
+    console.log("compouding coin list fetched");
+  });
+})
