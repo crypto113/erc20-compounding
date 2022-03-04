@@ -28,7 +28,7 @@ const addressTransactions = async (address) => {
 const addressNewTransactions = async (address, contractAddress) => {
   try {
     return await axios.get(`https://api.etherscan.io/api?module=account&action=tokentx&&contractaddress=${contractAddress}&address=${address}&page=1&offset=10000&sort=asc&apikey=9ZSJCS2AVWK7K1WQVKPHIGM4125A6494V3`,
-      { headers: { 'X-API-Key': `iOWumgDJl0YeKNzZNBiW7wZQR3CXkK2aCeSu4iWtJdeAIb8piSXoYecaL67Cc21P`, "content-type": "application/json" } })
+      { headers: { "content-type": "application/json" } })
   } catch (error) {
     console.error(error)
   }
